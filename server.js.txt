@@ -1,0 +1,94 @@
+'use strict';
+// Дом Гаргамеля: онлайн-сервер. Без зависимостей: http + свой WebSocket (RFC 6455) + node:sqlite. Node >= 22.5
+const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto'),{DatabaseSync}=require('node:sqlite'),{SH}=require('./shared');
+const PORT=+process.env.PORT||3000,db=new DatabaseSync(process.env.DB_PATH||path.join(__dirname,'game.db')),DT=.05,ROUND=360,MAXP=8;
+db.exec(`PRAGMA journal_mode=WAL;CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,name TEXT UNIQUE COLLATE NOCASE,salt TEXT,hash TEXT,coins INTEGER DEFAULT 0,wins INTEGER DEFAULT 0,games INTEGER DEFAULT 0,esc INTEGER DEFAULT 0,catches INTEGER DEFAULT 0,created INTEGER);CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,uid INTEGER,created INTEGER)`);
+const Q={byName:db.prepare('SELECT * FROM users WHERE name=?'),byId:db.prepare('SELECT * FROM users WHERE id=?'),ins:db.prepare('INSERT INTO users(name,salt,hash,created) VALUES(?,?,?,?)'),sess:db.prepare('INSERT INTO sessions VALUES(?,?,?)'),bySess:db.prepare('SELECT uid FROM sessions WHERE token=?'),upd:db.prepare('UPDATE users SET coins=coins+?,wins=wins+?,games=games+1,esc=esc+?,catches=catches+? WHERE id=?')};
+const stats=u=>({id:u.id,name:u.name,coins:u.coins,wins:u.wins,games:u.games,esc:u.esc,catches:u.catches});
+const hash=(p,s)=>crypto.scryptSync(p,s,32).toString('hex');
+/* ---------- HTTP ---------- */
+const srv=http.createServer((q,r)=>{const u=q.url.split('?')[0];if(u=='/health')return r.end('ok');
+ const f=u=='/shared.js'?'shared.js':'index.html';fs.readFile(path.join(__dirname,f),(e,d)=>{if(e){r.writeHead(500);return r.end('error')}r.writeHead(200,{'Content-Type':f.endsWith('.js')?'text/javascript':'text/html; charset=utf-8','Cache-Control':'no-cache'});r.end(d)})});
+/* ---------- WebSocket ---------- */
+function frame(op,p){const n=p.length;let h;if(n<126)h=Buffer.from([128|op,n]);else if(n<65536){h=Buffer.alloc(4);h[0]=128|op;h[1]=126;h.writeUInt16BE(n,2)}else{h=Buffer.alloc(10);h[0]=128|op;h[1]=127;h.writeBigUInt64BE(BigInt(n),2)}return Buffer.concat([h,p])}
+const conns=new Set();
+srv.on('upgrade',(req,sock)=>{const k=req.headers['sec-websocket-key'];if(!k||String(req.headers.upgrade).toLowerCase()!='websocket'){sock.destroy();return}
+ sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: '+crypto.createHash('sha1').update(k+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64')+'\r\n\r\n');
+ const ip=(req.headers['x-forwarded-for']||req.socket.remoteAddress||'').split(',')[0].trim();
+ const c={sock,buf:Buffer.alloc(0),ip,user:null,alive:1,rate:0,send(o){if(!sock.destroyed)sock.write(frame(1,Buffer.from(JSON.stringify(o))))}};conns.add(c);
+ sock.on('data',d=>{c.buf=Buffer.concat([c.buf,d]);if(c.buf.length>1<<17)return sock.destroy();parse(c)});sock.on('close',()=>{conns.delete(c);drop(c)});sock.on('error',()=>sock.destroy())});
+function parse(c){for(;;){const b=c.buf;if(b.length<2)return;const fin=b[0]&128,op=b[0]&15,m=b[1]&128;let n=b[1]&127,o=2;
+ if(n==126){if(b.length<4)return;n=b.readUInt16BE(2);o=4}else if(n==127){if(b.length<10)return;n=Number(b.readBigUInt64BE(2));o=10}
+ if(!m||n>65536){c.sock.destroy();return}if(b.length<o+4+n)return;const mk=b.subarray(o,o+4),p=Buffer.from(b.subarray(o+4,o+4+n));for(let i=0;i<n;i++)p[i]^=mk[i&3];c.buf=b.subarray(o+4+n);
+ if(op==8){c.sock.end(frame(8,Buffer.alloc(0)));return}if(op==9)c.sock.write(frame(10,p));else if(op==10)c.alive=1;else if(op==1&&fin)msg(c,p.toString())}}
+setInterval(()=>{for(const c of conns){c.rate=0;}},1000);
+setInterval(()=>{for(const c of conns){if(!c.alive){c.sock.destroy();continue}c.alive=0;if(!c.sock.destroyed)c.sock.write(frame(9,Buffer.alloc(0)))}},15000);
+/* ---------- аккаунты ---------- */
+const fails=new Map();
+function authOk(c,u){const old=[...conns].find(x=>x!==c&&x.user&&x.user.id==u.id);if(old){old.user=null;old.send({t:'err',m:'Вход выполнен с другого устройства'});old.sock.destroy()}
+ const tok=crypto.randomBytes(24).toString('hex');Q.sess.run(tok,u.id,Date.now());c.user={id:u.id,name:u.name};c.send({t:'auth',token:tok,u:stats(u)});
+ const code=where.get(u.id),r=code&&rooms.get(code);if(r){const p=r.pl.get(u.id);p.conn=c;p.dc=0;sendRoom(r);if(r.g)startMsg(r,p)}else c.send({t:'left'})}
+const clean=s=>String(s).replace(/[\u0000-\u001f\u007f<>]/g,'').trim();
+function msg(c,s){if(++c.rate>80){c.sock.destroy();return}let m;try{m=JSON.parse(s)}catch(e){return}if(!m||typeof m!='object'||typeof m.t!='string')return;
+ if(m.t=='login'){const name=clean(m.name||''),pw=String(m.pass||'');if(!/^[\wа-яА-ЯёЁ-]{3,16}$/u.test(name)||pw.length<4||pw.length>64)return c.send({t:'err',m:'Ник 3–16 символов, пароль от 4'});
+  const f=fails.get(c.ip)||{n:0,ts:Date.now()};if(Date.now()-f.ts>3e5){f.n=0;f.ts=Date.now()}if(f.n>=8)return c.send({t:'err',m:'Слишком много попыток, подожди 5 минут'});
+  let u=Q.byName.get(name);if(!u){const salt=crypto.randomBytes(16).toString('hex');Q.ins.run(name,salt,hash(pw,salt),Date.now());u=Q.byName.get(name)}
+  else if(!crypto.timingSafeEqual(Buffer.from(hash(pw,u.salt),'hex'),Buffer.from(u.hash,'hex'))){f.n++;fails.set(c.ip,f);return c.send({t:'err',m:'Неверный пароль (или ник уже занят)'})}
+  return authOk(c,u)}
+ if(m.t=='resume'){const r=Q.bySess.get(String(m.token||''));const u=r&&Q.byId.get(r.uid);if(!u)return c.send({t:'err',m:'Сессия устарела',relogin:1});return authOk(c,u)}
+ if(!c.user)return;const uid=c.user.id,room=rooms.get(where.get(uid)),p=room&&room.pl.get(uid);
+ switch(m.t){
+ case'create':leave(uid);return join(c,mkRoom(uid),uid);
+ case'join':{const r=rooms.get(String(m.code||'').toUpperCase().replace(/[^A-Z0-9]/g,''));if(!r)return c.send({t:'err',m:'Комната не найдена'});if(r.g&&!r.pl.has(uid))return c.send({t:'err',m:'Игра уже идёт'});if(r.pl.size>=MAXP&&!r.pl.has(uid))return c.send({t:'err',m:'Комната заполнена'});if(where.get(uid)!=r.code)leave(uid);return join(c,r,uid)}
+ case'leave':leave(uid);return c.send({t:'left'});
+ case'role':if(p&&!room.g)p.pref=m.r=='w'?'w':'s';return room&&sendRoom(room);
+ case'start':if(!room||room.g||room.host!=uid)return;if(room.pl.size<2)return c.send({t:'err',m:'Нужно минимум 2 игрока'});return startGame(room);
+ case'chat':{if(!p||Date.now()-(p.lc||0)<700)return;p.lc=Date.now();const t=clean(m.m||'').slice(0,140);if(t)bc(room,{t:'chat',from:c.user.name,m:t});return}
+ case'in':if(p&&p.s){const i=p.s.inp,n=v=>Number.isFinite(v)?v:0;i.mx=Math.max(-1,Math.min(1,n(m.mx)));i.mz=Math.max(-1,Math.min(1,n(m.mz)));i.y=n(m.y)%(Math.PI*20);i.p=Math.max(-1.3,Math.min(1.3,n(m.p)));i.sp=!!m.sp}return;
+ case'act':if(p&&p.s&&Date.now()-p.la>250){p.la=Date.now();act(room,p)}return;
+ case'sense':if(p&&p.s&&p.s.role=='w'&&p.s.st=='alive'&&p.s.sc<=0){p.s.sense=4;p.s.sc=22}return}}
+/* ---------- комнаты ---------- */
+const rooms=new Map(),where=new Map();
+function mkRoom(host){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let c;do{c='';for(let i=0;i<5;i++)c+=A[crypto.randomInt(A.length)]}while(rooms.has(c));const r={code:c,host,pl:new Map(),g:null};rooms.set(c,r);return r}
+function join(c,r,uid){let p=r.pl.get(uid);if(!p){p={id:uid,name:c.user.name,conn:c,pref:'s',dc:0,la:0,lc:0,s:null};r.pl.set(uid,p)}p.conn=c;where.set(uid,r.code);sendRoom(r);if(r.g)startMsg(r,p)}
+function sendRoom(r){bc(r,{t:'room',code:r.code,host:r.host,st:r.g?'play':'lobby',pl:[...r.pl.values()].map(p=>({id:p.id,name:p.name,pref:p.pref,on:!!p.conn}))})}
+function bc(r,o){for(const p of r.pl.values())p.conn&&p.conn.send(o)}
+function leave(uid){const code=where.get(uid),r=rooms.get(code);where.delete(uid);if(!r)return;const p=r.pl.get(uid);if(!p)return;
+ if(r.g&&p.s&&p.s.st=='alive'){if(p.s.role=='w'){r.pl.delete(uid);return endGame(r,'Гаргамель покинул игру')}p.s.st='dead';if(p.s.hid>=0)p.s.hid=-1}
+ r.pl.delete(uid);if(!r.pl.size){rooms.delete(code);return}if(r.host==uid)r.host=[...r.pl.keys()][0];sendRoom(r)}
+function drop(c){if(!c.user)return;const uid=c.user.id,r=rooms.get(where.get(uid)),p=r&&r.pl.get(uid);if(p&&p.conn===c){p.conn=null;p.dc=Date.now();p.s&&(p.s.inp={mx:0,mz:0,y:p.s.inp.y,p:0,sp:false});sendRoom(r)}}
+/* ---------- игра (сервер — единственный источник истины) ---------- */
+function startGame(r){const ps=[...r.pl.values()],pw=ps.filter(p=>p.pref=='w'),pool=pw.length?pw:ps,w=pool[crypto.randomInt(pool.length)];
+ const cand=[];for(let f=0;f<2;f++)SH.KP.forEach(k=>cand.push([k[0],k[1],f*SH.H]));cand.sort(()=>Math.random()-.5);
+ r.g={t:0,kt:0,keys:cand.slice(0,3).map(k=>({x:k[0],z:k[1],h:k[2],taken:0})),gone:0,stat:{}};let i=0;
+ for(const p of ps){const wz=p===w;p.s={role:wz?'w':'s',x:wz?20:9.6+(i++%3)*.4,z:wz?4:12+(i%2)*.5,y:wz?0:Math.PI,p:0,ht:0,st:'alive',hid:-1,stam:1,sense:0,sc:0,inp:{mx:0,mz:0,y:wz?0:Math.PI,p:0,sp:false}};r.g.stat[p.id]={keys:0,catches:0,esc:0}}
+ for(const p of ps)p.conn&&startMsg(r,p);sendRoom(r)}
+function startMsg(r,p){p.conn.send({t:'start',role:p.s.role,x:p.s.x,z:p.s.z,y:p.s.y,keys:r.g.keys.map(k=>[k.x,k.z,k.h])})}
+function pls(r){return[...r.pl.values()].filter(p=>p.s)}
+function act(r,p){const g=r.g,s=p.s;if(!g||s.st!='alive')return;const near=(x,z,rad,h)=>Math.hypot(s.x-x,s.z-z)<rad&&Math.abs(s.ht-h)<1.5;
+ const ci=(rad)=>SH.CL.findIndex(c=>Math.abs(c.f*SH.H-s.ht)<1.5&&Math.hypot(c.x-s.x,c.z-s.z)<rad);
+ if(s.role=='s'){if(s.hid>=0){const c=SH.CL[s.hid],f=SH.fx(c);s.x=c.x+f[0]*1.1;s.z=c.z+f[1]*1.1;s.hid=-1;return}
+  const i=ci(1.8);if(i>=0){if(!pls(r).some(o=>o.s.hid==i)){s.hid=i;s.x=SH.CL[i].x;s.z=SH.CL[i].z;p.conn&&p.conn.send({t:'ev',e:'hid'})}return}
+  if(near(SH.EX[0],SH.EX[1],2.4,0)&&g.kt>=3){s.st='esc';g.stat[p.id].esc=1;bc(r,{t:'ev',e:'esc',who:p.id})}}
+ else{const i=ci(2.6);if(i<0)return;const v=pls(r).find(o=>o.s.role=='s'&&o.s.st=='alive'&&o.s.hid==i);if(v)caught(r,p,v);else p.conn&&p.conn.send({t:'ev',e:'empty'})}}
+function caught(r,w,v){v.s.st='dead';v.s.hid=-1;r.g.stat[w.id].catches++;bc(r,{t:'ev',e:'caught',who:v.id,by:w.id})}
+function tick(r){const g=r.g;g.t+=DT;const L=pls(r),now=Date.now();
+ for(const p of L){if(!p.conn&&now-p.dc>30000){leave(p.id);if(!r.g)return;continue}const s=p.s;s.sc=Math.max(0,s.sc-DT);s.sense=Math.max(0,s.sense-DT);if(s.st!='alive'||s.hid>=0)continue;
+  const i=s.inp;let mx=i.mx,mz=i.mz;const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
+  const sp=s.role=='s'&&i.sp&&s.stam>0&&l>.1;if(s.role=='s')s.stam=Math.max(0,Math.min(1,s.stam+(sp?-.25:.12)*DT));
+  const v=(s.role=='w'?3.4:3.2)*(sp?1.55:1),c=Math.cos(i.y),sn=Math.sin(i.y);s.x+=(c*mx+sn*mz)*v*DT;s.z+=(-sn*mx+c*mz)*v*DT;s.y=i.y;s.p=i.p;SH.col(s,.32);SH.gh(s);
+  if(s.role=='s')for(const k of g.keys)if(!k.taken&&Math.abs(k.h-s.ht)<1.5&&Math.hypot(k.x-s.x,k.z-s.z)<1){k.taken=1;g.kt++;g.stat[p.id].keys++;bc(r,{t:'ev',e:'key',who:p.id,n:g.kt})}}
+ const W=L.find(p=>p.s.role=='w');
+ if(W&&W.s.st=='alive')for(const v of L)if(v.s.role=='s'&&v.s.st=='alive'&&v.s.hid<0&&Math.abs(v.s.ht-W.s.ht)<1.7&&Math.hypot(v.s.x-W.s.x,v.s.z-W.s.z)<1)caught(r,W,v);
+ const gn=L.filter(p=>p.s.role=='s'),act_=gn.filter(p=>p.s.st=='alive').length;
+ if(!act_||g.t>=ROUND)return endGame(r,act_?'Время вышло':'Раунд окончен');
+ for(const p of L){if(!p.conn)continue;const s=p.s,w=s.role=='w',see=w&&s.sense>0;
+  p.conn.send({t:'snap',tm:Math.ceil(ROUND-g.t),kt:g.kt,kk:g.keys.map(k=>k.taken),ex:g.kt>=3?1:0,cd:Math.ceil(s.sc),sn:see?1:0,me:{x:s.x,z:s.z,ht:s.ht,st:s.st,hid:s.hid,stam:s.stam},
+   p:L.filter(o=>o!==p).map(o=>{const q=o.s,h=q.hid>=0;const o2={i:o.id,r:q.role,s:q.st,y:q.y,c:h?1:0,on:o.conn?1:0};if(!h||see||(q.role=='s'&&!w&&false)){o2.x=+q.x.toFixed(2);o2.z=+q.z.toFixed(2);o2.h=+q.ht.toFixed(2)}return o2})})}}
+function endGame(r,why){const g=r.g;if(!g)return;const L=pls(r),esc=L.filter(p=>p.s.st=='esc').length,res=[];
+ for(const p of L){const s=p.s,st=g.stat[p.id];let coins=0,win=0;
+  if(s.role=='w'){win=esc==0?1:0;coins=st.catches*25+(win?30:0)}else{win=s.st=='esc'?1:0;coins=st.keys*5+(win?50:0)+(s.st=='alive'?10:0)}
+  Q.upd.run(coins,win,st.esc,st.catches,p.id);res.push({id:p.id,name:p.name,role:s.role,st:s.st,win,coins,keys:st.keys,catches:st.catches})}
+ bc(r,{t:'end',why,esc,res});for(const p of r.pl.values()){p.s=null;if(p.conn){const u=Q.byId.get(p.id);p.conn.send({t:'stats',u:stats(u)})}}r.g=null;sendRoom(r)}
+setInterval(()=>{for(const r of rooms.values()){if(r.g)tick(r);else for(const p of r.pl.values())if(!p.conn&&Date.now()-p.dc>20000){leave(p.id);break}}},DT*1000);
+srv.listen(PORT,()=>console.log('Сервер запущен: http://localhost:'+PORT));

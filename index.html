@@ -1,0 +1,193 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>Дом Гаргамеля Онлайн</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="/shared.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui,Segoe UI,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+.ov{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:radial-gradient(circle at 50% 20%,#2b1d14,#050505 75%);z-index:20;overflow:auto;text-align:center}.ov.on{display:flex}
+h1{font-size:38px;margin:0;color:#d9c7a0;text-shadow:0 0 24px #7a1a1a,0 4px 0 #000;letter-spacing:1px}
+.b{font:700 18px system-ui;color:#fff;border:0;border-radius:12px;padding:12px 24px;background:#8d2a2a;box-shadow:0 4px 0 #4a1010}.b:active{transform:translateY(3px)}
+.c{color:#fff;font:inherit;font-weight:700;border-radius:12px;padding:10px 14px;background:#241d19;border:2px solid #3a2f28;font-weight:700;font-size:15px}.c.s{border-color:#e0b34a;background:#4a3320}
+.rw{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:460px}
+small{opacity:.7;max-width:420px}
+#hud{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:8px;right:8px;display:none;z-index:5;pointer-events:none;text-align:center}
+.p{display:inline-block;background:rgba(0,0,0,.6);border-radius:999px;padding:5px 12px;font-weight:700;margin:2px}
+#nt:empty{display:none}#hint{position:fixed;bottom:34%;width:100%;text-align:center;font-weight:700;font-size:18px;text-shadow:0 2px 8px #000;z-index:5;pointer-events:none}
+#sb{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:120px;height:6px;margin-left:-60px;background:#0008;border-radius:4px;z-index:5}#sbi{height:100%;background:#e0b34a;border-radius:4px}
+#lz{position:fixed;right:0;top:0;width:55%;height:100%;z-index:2}#zn{position:fixed;left:0;top:0;width:45%;height:100%;z-index:3}
+#st{position:fixed;display:none;width:110px;height:110px;border-radius:50%;border:3px solid #fff5;background:#fff1;z-index:4;pointer-events:none}#kn{position:absolute;left:31px;top:31px;width:48px;height:48px;border-radius:50%;background:#fffb}
+.bt{position:fixed;z-index:6;border:2px solid #fff8;border-radius:50%;color:#fff;font:700 24px system-ui;display:none;align-items:center;justify-content:center;background:#000a}.bt:active{background:#e0b34a66}
+#bE{width:90px;height:90px;right:18px;bottom:calc(30px + env(safe-area-inset-bottom,0px));background:#8d2a2aaa}#bF{width:58px;height:58px;right:30px;bottom:calc(138px + env(safe-area-inset-bottom,0px))}#bS{width:66px;height:66px;right:120px;bottom:calc(36px + env(safe-area-inset-bottom,0px))}
+body.g .bt{display:flex}#bQ{display:none!important}body.g.w #bQ{display:flex!important;width:62px;height:62px;right:30px;bottom:calc(210px + env(safe-area-inset-bottom,0px));background:#4a1a6aaa}#cd{font-weight:700;font-size:20px;color:#e0b34a}#cd input{font:inherit;font-size:22px;width:150px;text-align:center;border-radius:10px;border:2px solid #e0b34a;background:#111;color:#fff;padding:8px;text-transform:uppercase;user-select:text;-webkit-user-select:text}
+#vg{position:fixed;inset:0;pointer-events:none;background:radial-gradient(transparent 35%,rgba(160,0,0,.8));opacity:0;z-index:4}
+#hide{position:fixed;inset:0;pointer-events:none;display:none;z-index:4;background:repeating-linear-gradient(90deg,#000 0 30px,#0000 30px 42px)}
+#sc{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;background:radial-gradient(#a00,#000);font-size:min(75vw,55vh)}#sc.on{display:flex;animation:zm .3s ease-out}
+@keyframes zm{from{transform:scale(.1) rotate(-20deg)}to{transform:scale(1)}}
+
+input{font:inherit;font-size:18px;padding:11px 14px;border-radius:10px;border:2px solid #3a2f28;background:#15110f;color:#fff;width:min(300px,100%);text-align:center;user-select:text;-webkit-user-select:text}
+.ov{z-index:20}#net{position:fixed;top:0;left:0;right:0;background:#a02;color:#fff;text-align:center;padding:6px;z-index:50;display:none;font-weight:700}
+.pl{display:flex;justify-content:space-between;gap:8px;width:min(420px,100%);background:#241d19;border-radius:10px;padding:8px 12px;font-size:16px}.pl.me{outline:2px solid #e0b34a}
+.cb{width:min(420px,100%);height:120px;overflow:auto;background:#0008;border-radius:10px;padding:6px 10px;text-align:left;font-size:14px}.cr{display:flex;gap:6px;width:min(420px,100%)}.cr input{flex:1;width:auto;text-align:left;font-size:15px;padding:8px 10px}
+#gc{position:fixed;left:8px;top:calc(48px + env(safe-area-inset-top,0px));width:55%;font-size:13px;text-shadow:0 1px 3px #000;z-index:5;pointer-events:none;text-align:left}
+#gi{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:9;display:none;gap:6px}#gi input{flex:1;width:auto;text-align:left}
+#bC{width:46px;height:46px;left:10px;top:calc(100px + env(safe-area-inset-top,0px));font-size:20px}
+.rs{font-size:14px;width:min(440px,100%)}
+</style></head><body>
+<canvas id="c"></canvas><div id="lz"></div><div id="zn"></div><div id="st"><div id="kn"></div></div>
+<div id="hud"><span class="p" id="tm"></span><span class="p" id="ky"></span><span class="p" id="al"></span><span class="p" id="nt"></span></div>
+<div id="gc"></div><div id="hint"></div><div id="sb"><div id="sbi"></div></div><div id="vg"></div><div id="hide"></div>
+<button class="bt" id="bE">E</button><button class="bt" id="bF">🔦</button><button class="bt" id="bQ">👁</button><button class="bt" id="bS">⚡</button><button class="bt" id="bC">💬</button>
+<div id="gi"><input id="gin" maxlength="140" placeholder="Сообщение…" autocomplete="off"><button class="b" id="gs">➤</button></div><div id="sc">👹</div><div id="net"></div>
+<div class="ov" id="auth"><h1>ДОМ ГАРГАМЕЛЯ<br>ОНЛАЙН</h1><small>Войди или создай аккаунт — прогресс и монеты хранятся на сервере.</small><input id="un" placeholder="Ник (3–16)" maxlength="16" autocomplete="username"><input id="pw" type="password" placeholder="Пароль" autocomplete="current-password"><button class="b" id="lg">Войти / Регистрация</button><small id="ae"></small></div>
+<div class="ov" id="menu"><h1>ГЛАВНОЕ МЕНЮ</h1><div class="p" id="me0"></div><button class="b" id="mk">➕ Создать комнату</button><div class="cr" style="justify-content:center"><input id="jc" maxlength="6" placeholder="КОД" style="flex:0 0 130px;text-transform:uppercase;text-align:center"><button class="b" id="jn" style="background:#4a5aa8">Войти</button></div><button class="b" id="lo" style="background:#444;font-size:14px;padding:8px 14px">Выйти из аккаунта</button><small id="me1"></small></div>
+<div class="ov" id="lobby"><h1>ЛОББИ</h1><div class="p" id="lc" style="font-size:24px;letter-spacing:4px"></div><div class="cr" style="justify-content:center"><button class="b" id="cp" style="background:#4a5aa8;font-size:15px;padding:9px 14px">📋 Ссылка-приглашение</button><button class="b" id="sh" style="background:#4a5aa8;font-size:15px;padding:9px 14px">📤 Поделиться</button></div><div id="pl" style="display:flex;flex-direction:column;gap:6px;width:100%;align-items:center"></div><div class="rw"><button class="c s" id="rs" onclick="sendRole('s')">🔵 Гномик</button><button class="c" id="rw" onclick="sendRole('w')">🧙 Хочу быть Гаргамелем</button></div><div class="cb" id="lg2"></div><div class="cr"><input id="li" maxlength="140" placeholder="Чат…" autocomplete="off"><button class="b" id="ls" style="padding:8px 16px">➤</button></div><div class="rw"><button class="b" id="st2">▶ Начать игру</button><button class="b" id="lv" style="background:#444">Выйти</button></div><small id="lh"></small></div>
+<div class="ov" id="end"><h1 id="et"></h1><div id="ed"></div><div id="er" style="display:flex;flex-direction:column;gap:6px;align-items:center;width:100%"></div><button class="b" onclick="show('lobby')">В лобби</button></div>
+<script>
+const $=i=>document.getElementById(i),R=Math.random,H=SH.H;
+/* audio */
+let AC,mg,nb;function au(){if(AC)return;try{AC=new(window.AudioContext||window.webkitAudioContext)();mg=AC.createGain();mg.gain.value=.8;mg.connect(AC.destination);nb=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=R()*2-1;[48,50.5].forEach(f=>{const o=AC.createOscillator(),l=AC.createBiquadFilter(),v=AC.createGain();o.type='sawtooth';o.frequency.value=f;l.type='lowpass';l.frequency.value=120;v.gain.value=.06;o.connect(l);l.connect(v);v.connect(mg);o.start()})}catch(e){}}
+function tn(f,d,ty,v,sl){if(!AC)return;try{const t=AC.currentTime,o=AC.createOscillator(),n=AC.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,t);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+sl),t+d);n.gain.setValueAtTime(v,t);n.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(n);n.connect(mg);o.start(t);o.stop(t+d)}catch(e){}}
+function ns(d,v,f){if(!AC)return;try{const t=AC.currentTime,s=AC.createBufferSource(),b=AC.createBiquadFilter(),n=AC.createGain();s.buffer=nb;b.type='bandpass';b.frequency.value=f;n.gain.setValueAtTime(v,t);n.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(b);b.connect(n);n.connect(mg);s.start(t);s.stop(t+d)}catch(e){}}
+/* three */
+const ren=new THREE.WebGLRenderer({canvas:$('c')}),sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(75,1,.05,60);
+sc.background=new THREE.Color(0x0c0c12);sc.fog=new THREE.FogExp2(0x0c0c12,.045);sc.add(cam);cam.rotation.order='YXZ';
+function rs(){ren.setPixelRatio(Math.min(devicePixelRatio,1.5));ren.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}addEventListener('resize',rs);rs();
+function tex(base,k){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle=base;x.fillRect(0,0,256,256);
+ for(let i=0;i<3000;i++){x.fillStyle=R()<.5?'rgba(0,0,0,'+R()*.2+')':'rgba(255,255,255,'+R()*.07+')';x.fillRect(R()*256,R()*256,1+R()*3,1+R()*3)}
+ for(let i=0;i<16;i++){const px=R()*256,py=R()*256,r=20+R()*50,g=x.createRadialGradient(px,py,0,px,py,r);g.addColorStop(0,k=='w'?'rgba(150,130,80,.3)':'rgba(0,0,0,.35)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(px-r,py-r,2*r,2*r)}
+ if(k=='f'){for(let i=0;i<8;i++){x.fillStyle='rgba(0,0,0,.6)';x.fillRect(0,i*32,256,2);for(let j=0;j<3;j++)x.fillRect(R()*256,i*32,2,32)}}
+ const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t}
+const wt=tex('#a8a598','w'),C=SH.C;
+const WL=SH.WL;
+function bx(x,z,w,d,h,col,f,c,y0,em){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:col,emissive:em||0}));m.position.set(x,f*H+(y0||0)+h/2,z);sc.add(m);return m}
+const PR=SH.PR;
+const pls=[],CB=SH.CB,CL=SH.CL;
+const fx=c=>[Math.round(-Math.sin(c.y)),Math.round(-Math.cos(c.y))];
+for(let f=0;f<2;f++){
+ WL.forEach(([a,b,c,d])=>{const h=b==d,len=h?c-a:d-b,t=wt.clone();t.needsUpdate=true;t.repeat.set(len/3,1);const m=new THREE.Mesh(new THREE.BoxGeometry(h?len:.3,3,h?.3:len),new THREE.MeshLambertMaterial({map:t}));m.position.set((a+c)/2,f*H+1.5,(b+d)/2);sc.add(m)});
+ PR.forEach(p=>bx(p[0],p[1],p[2],p[3],p[4],p[5],f,1));
+ CB.forEach(b=>{const c={...b,f};bx(c.x,c.z,c.w,c.d,2.3,0x6b4423,f,1);const q=fx(c);bx(c.x+q[0]*.47,c.z+q[1]*.47,q[0]?.04:.9,q[1]?.04:.9,2,0x3a2412,f,0)});
+
+ [[4,4],[20,14]].forEach(p=>{const l=new THREE.PointLight(0xffb070,.9,15);l.position.set(p[0],f*H+2.6,p[1]);sc.add(l);pls.push(l)});
+}
+
+bx(10.9,12.6,.2,7.2,3,0x6f6d66,0,0);bx(12.9,12.6,.2,7.2,3,0x6f6d66,0,0);bx(10.9,12.6,.1,7.2,1,0x3a2c22,1,0);bx(12.9,12.6,.1,7.2,1,0x3a2c22,1,0);bx(11.9,9,2.2,.1,1,0x3a2c22,1,0);
+for(let i=0;i<16;i++)bx(11.9,9+(i+.5)*.45,1.8,.45,(i+1)*.206,0x3a2c22,0,0);
+const ft=tex('#75634f','f');ft.repeat.set(8,6);const fm=new THREE.Mesh(new THREE.PlaneGeometry(24,18),new THREE.MeshLambertMaterial({map:ft}));fm.rotation.x=-Math.PI/2;fm.position.set(12,0,9);sc.add(fm);
+function slab(x1,z1,x2,z2){const t=ft.clone();t.needsUpdate=true;t.repeat.set((x2-x1)/3,(z2-z1)/3);const m=new THREE.Mesh(new THREE.BoxGeometry(x2-x1,.3,z2-z1),new THREE.MeshLambertMaterial({map:t}));m.position.set((x1+x2)/2,3.15,(z1+z2)/2);sc.add(m)}
+slab(0,0,24,9);slab(0,9,10.8,18);slab(13,9,24,18);slab(10.8,16.3,13,18);
+const ct=tex('#554c40','c');ct.repeat.set(6,4);const cl=new THREE.Mesh(new THREE.PlaneGeometry(24,18),new THREE.MeshLambertMaterial({map:ct}));cl.rotation.x=Math.PI/2;cl.position.set(12,2*H-.3,9);sc.add(cl);
+const ex=bx(12,.2,1.6,.1,2.4,0x222222,0,0,0,0x330000);
+sc.add(new THREE.AmbientLight(0x6a6a82,1.1));
+const fls=new THREE.SpotLight(0xfff0cc,2.2,30,.6,.5,1.1),tg=new THREE.Object3D();cam.add(fls);cam.add(tg);tg.position.set(0,0,-5);fls.target=tg;
+function wiz(){const g=new THREE.Group(),L=c=>new THREE.MeshLambertMaterial({color:c}),r=L(0x221f2a),sk=L(0xdca58f),dk=L(0x0b0a0c),sh=L(0x7a2a22),rp=L(0x7a5a38),pt=L(0x9a9488),wh=L(0xffffff);
+ const add=(geo,m,x,y,z,o,sc)=>{const q=new THREE.Mesh(geo,m);q.position.set(x,y,z);if(o)Object.assign(q.rotation,o);if(sc)q.scale.set(...sc);g.add(q);return q},S=(r,a)=>new THREE.SphereGeometry(r,a||10,8);
+ add(new THREE.CylinderGeometry(.2,.58,1.35,12),r,0,.8,0);add(new THREE.TorusGeometry(.21,.1,8,14),r,0,1.5,0,{x:Math.PI/2});
+ add(new THREE.TorusGeometry(.35,.03,6,16),rp,0,.95,0,{x:Math.PI/2});add(new THREE.BoxGeometry(.05,.42,.03),rp,.04,.72,-.36);
+ add(new THREE.BoxGeometry(.18,.2,.03),pt,.2,.45,-.47,{z:.15});add(new THREE.BoxGeometry(.15,.16,.03),pt,-.33,.28,-.37,{y:-.5});
+ [-1,1].forEach(q=>{add(S(1,8),sh,q*.16,.09,-.14,0,[.15,.09,.25]);
+  add(new THREE.CylinderGeometry(.065,.09,.65,8),r,q*.3,1.1,-.2,{x:.9});add(S(.07),sk,q*.3,.9,-.46,0,[.8,.7,1.5]);
+  add(S(.05),wh,q*.09,1.86,-.17);add(S(.025,6),dk,q*.09,1.86,-.215);add(new THREE.BoxGeometry(.15,.035,.05),dk,q*.09,1.935,-.19,{z:q*.45});
+  add(S(.05,6),sk,q*.22,1.8,.02);add(S(.07,6),dk,q*.2,1.9,.02);add(S(.045,6),dk,q*.17,1.97,.02)});
+ add(S(.22,12),sk,0,1.82,0,0,[1,1.15,1]);add(new THREE.ConeGeometry(.07,.4,8),sk,0,1.74,-.33,{x:-1.87});add(new THREE.BoxGeometry(.1,.025,.03),dk,0,1.64,-.2);
+ const cat=new THREE.Group(),o=L(0xe07a22);[[S(.1),0,.15,0,[1.1,1,1.9]],[S(.08),0,.26,-.2],[new THREE.ConeGeometry(.03,.07,4),-.05,.34,-.2],[new THREE.ConeGeometry(.03,.07,4),.05,.34,-.2],[new THREE.CylinderGeometry(.015,.015,.3,4),0,.24,.28,0,{x:.9}]].forEach(a=>{const q=new THREE.Mesh(a[0],o);q.position.set(a[1],a[2],a[3]);if(a[4])q.scale.set(...a[4]);cat.add(q)});cat.position.set(.75,0,.2);g.add(cat);
+ g.scale.setScalar(.92);return g}
+function smu(){const g=new THREE.Group(),bl=new THREE.MeshLambertMaterial({color:0x3b8cff}),w=new THREE.MeshLambertMaterial({color:0xffffff});
+ const b=new THREE.Mesh(new THREE.CylinderGeometry(.22,.26,.6,10),w);b.position.y=.5;const h=new THREE.Mesh(new THREE.SphereGeometry(.25,10,8),bl);h.position.y=1.0;
+ const t=new THREE.Mesh(new THREE.ConeGeometry(.22,.45,10),w);t.position.set(0,1.38,.05);t.rotation.x=.3;const n=new THREE.Mesh(new THREE.SphereGeometry(.05,6,6),bl);n.position.set(0,1.0,-.25);
+ const l=new THREE.Mesh(new THREE.BoxGeometry(.3,.25,.2),bl);l.position.y=.12;
+ const bc=new THREE.Mesh(new THREE.SphereGeometry(.14,8,8),new THREE.MeshBasicMaterial({color:0xff2244,depthTest:false}));bc.position.y=1.9;bc.renderOrder=10;bc.visible=false;
+ g.add(b,h,t,n,l,bc);g.userData.bc=bc;return g}
+
+
+const {fi,gh,col}=SH;
+let ws,tok='',U=null,RM=null,G=0,S=null,me=null,keys={},joy={x:0,y:0},spr=0,pm=new Map(),hbT=0,am=5,lp={},ntm=0,bo=0,pend=null,inT=0,inp={mx:0,mz:0,sp:false},hid0=-1;
+const sv=v=>{try{localStorage.setItem('hs_tok',v)}catch(e){}};try{tok=localStorage.getItem('hs_tok')||''}catch(e){}
+pend=(new URLSearchParams(location.search).get('room')||'').toUpperCase().replace(/[^A-Z0-9]/g,'')||null;
+const show=id=>['auth','menu','lobby','end'].forEach(i=>$(i).classList.toggle('on',i==id)),send=o=>{if(ws&&ws.readyState==1)ws.send(JSON.stringify(o))},banner=t=>{$('net').textContent=t;$('net').style.display=t?'block':'none'};
+const nameOf=id=>(RM&&RM.pl.find(p=>p.id==id)||{}).name||'?';
+function note(t){$('nt').textContent=t;clearTimeout(ntm);ntm=setTimeout(()=>$('nt').textContent='',3000)}
+/* ---- сеть: автоподключение с экспоненциальной паузой ---- */
+function conn(){ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host);
+ ws.onopen=()=>{bo=0;banner('');if(tok)send({t:'resume',token:tok});else show('auth')};
+ ws.onmessage=e=>{try{onMsg(JSON.parse(e.data))}catch(x){console.error(x)}};
+ ws.onclose=()=>{banner('⚠ Нет связи с сервером. Переподключаюсь…');setTimeout(conn,Math.min(5000,400*2**bo++))}}
+function onMsg(m){switch(m.t){
+ case'err':if(m.relogin){tok='';sv('');show('auth')}$('ae').textContent=m.m;note('⚠ '+m.m);break;
+ case'auth':tok=m.token;sv(tok);U=m.u;rMenu();if(!RM)show('menu');if(pend){send({t:'join',code:pend});pend=null;try{history.replaceState(null,'','/')}catch(e){}}break;
+ case'stats':U=m.u;rMenu();break;
+ case'left':RM=null;if(G)stop();show('menu');break;
+ case'room':RM=m;if(m.st=='lobby'){if(G)stop();if(!$('end').classList.contains('on'))show('lobby')}rLobby();break;
+ case'chat':chat(m);break;case'start':begin(m);break;case'snap':onSnap(m);break;case'ev':onEv(m);break;case'end':onEnd(m);break}}
+/* ---- UI ---- */
+$('lg').onclick=()=>{au();$('ae').textContent='';send({t:'login',name:$('un').value,pass:$('pw').value})};
+$('mk').onclick=()=>send({t:'create'});$('jn').onclick=()=>send({t:'join',code:$('jc').value});$('lv').onclick=()=>send({t:'leave'});$('st2').onclick=()=>{au();send({t:'start'})};
+$('lo').onclick=()=>{tok='';sv('');RM=null;ws.close()};
+const link=()=>location.origin+'/?room='+RM.code;
+$('cp').onclick=()=>{try{navigator.clipboard.writeText(link());$('cp').textContent='✓ Скопировано'}catch(e){prompt('Ссылка:',link())}};
+$('sh').onclick=()=>{const d={title:'Дом Гаргамеля',text:'Заходи ко мне в игру! Код комнаты: '+RM.code,url:link()};if(navigator.share)navigator.share(d).catch(()=>{});else $('cp').onclick()};
+function sendRole(r){send({t:'role',r})}
+function rMenu(){$('me0').textContent=`👤 ${U.name} · 🪙 ${U.coins} · 🏆 ${U.wins}/${U.games} · 🚪 ${U.esc} · 🎯 ${U.catches}`;$('me1').textContent='Создай комнату и отправь друзьям код или ссылку.'}
+function rLobby(){$('lc').textContent='Код: '+RM.code;$('cp').textContent='📋 Ссылка-приглашение';const L=$('pl');L.innerHTML='';
+ RM.pl.forEach(p=>{const d=document.createElement('div');d.className='pl'+(p.id==U.id?' me':'');const a=document.createElement('span'),b=document.createElement('span');a.textContent=(p.id==RM.host?'👑 ':'')+p.name;b.textContent=(p.on?'':'⚠ офлайн · ')+(p.pref=='w'?'🧙 хочет быть Гаргамелем':'🔵 гномик');d.append(a,b);L.append(d)});
+ const mp=RM.pl.find(p=>p.id==U.id)||{};$('rs').classList.toggle('s',mp.pref!='w');$('rw').classList.toggle('s',mp.pref=='w');
+ const host=RM.host==U.id;$('st2').style.display=host?'':'none';$('lh').textContent=host?(RM.pl.length<2?'Нужно минимум 2 игрока — пригласи друзей!':'Гаргамеля выбираем среди желающих, иначе случайно.'):'Ждём, пока хозяин комнаты начнёт игру…'}
+function chat(m){const t=m.from+': '+m.m;for(const id of['lg2','gc']){const d=document.createElement('div');d.textContent=t;const b=$(id);b.append(d);if(id=='lg2')b.scrollTop=1e9;else{while(b.children.length>6)b.firstChild.remove();setTimeout(()=>d.remove(),12000)}}}
+const sendChat=id=>{const i=$(id),t=i.value.trim();if(t)send({t:'chat',m:t});i.value=''};
+$('ls').onclick=()=>sendChat('li');$('li').onkeydown=e=>{if(e.key=='Enter')sendChat('li')};
+const gchat=()=>{const g=$('gi');g.style.display=g.style.display=='flex'?'none':'flex';if(g.style.display=='flex')$('gin').focus()};
+$('bC').onpointerdown=e=>{e.preventDefault();gchat()};$('gs').onclick=()=>{sendChat('gin');$('gi').style.display='none'};
+/* ---- игра ---- */
+function tag(n){const c=document.createElement('canvas');c.width=256;c.height=64;const x=c.getContext('2d');x.font='bold 34px sans-serif';x.textAlign='center';x.lineWidth=6;x.strokeStyle='#000';x.fillStyle='#fff';x.strokeText(n,128,44);x.fillText(n,128,44);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true}));s.scale.set(1.2,.3,1);s.position.y=2.3;s.userData.tag=1;return s}
+function begin(m){if(G)return;G=1;au();S={role:m.role,km:m.keys.map(k=>{const q=new THREE.Mesh(new THREE.OctahedronGeometry(.18),new THREE.MeshLambertMaterial({color:0xffcc22,emissive:0x886600}));q.userData={x:k[0],z:k[1],h:k[2]};q.position.set(k[0],k[2]+.9,k[1]);sc.add(q);return q}),kt:0,ex:0,tm:360,sn:0,cd:0};
+ me={x:m.x,z:m.z,y:m.y,p:0,ht:0,st:'alive',hid:-1,stam:1,sd:0};hid0=-1;lp={};show('');document.body.classList.add('g');document.body.classList.toggle('w',m.role=='w');$('hud').style.display='block';
+ ex.material.color.set(0x222222);ex.material.emissive.set(0x330000);note(m.role=='w'?'🧙 Лови гномиков! 👁 — чутьё':'🔑 Найдите 3 ключа всей командой. Лестница — 2 этаж!')}
+function stop(){G=0;document.body.classList.remove('g','w');$('hud').style.display='none';$('hide').style.display='none';$('vg').style.opacity=0;$('sc').classList.remove('on');$('gi').style.display='none';if(S)S.km.forEach(k=>sc.remove(k));for(const a of pm.values())sc.remove(a.m);pm.clear()}
+function onSnap(m){if(!G)return;S.tm=m.tm;S.kt=m.kt;S.ex=m.ex;S.sn=m.sn;S.cd=m.cd;S.km.forEach((k,i)=>k.visible=!m.kk[i]);
+ const s=m.me;if(s.hid>=0&&hid0<0){me.y=CL[s.hid].y;me.p=0}hid0=s.hid;me.st=s.st;me.hid=s.hid;me.stam=s.stam;me.ht=s.ht;
+ if(Math.hypot(s.x-me.x,s.z-me.z)>1.5||me.hid>=0){me.x=s.x;me.z=s.z}else{me.x+=(s.x-me.x)*.02;me.z+=(s.z-me.z)*.02}
+ const seen=new Set();for(const o of m.p){seen.add(o.i);let a=pm.get(o.i);if(!a||a.r!=o.r){if(a)sc.remove(a.m);const mm=o.r=='w'?wiz():smu();mm.add(tag(nameOf(o.i)));sc.add(mm);a={m:mm,r:o.r,init:0};pm.set(o.i,a)}
+  a.s=o.s;a.c=o.c;a.on=o.on;if(o.x!=null){a.tx=o.x;a.tz=o.z;a.th=o.h;a.ty=o.y;if(!a.init){a.init=1;a.m.position.set(o.x,o.h,o.z)}}else a.tx=null}
+ for(const[k,a]of pm)if(!seen.has(k)){sc.remove(a.m);pm.delete(k)}}
+function scare(){$('sc').classList.add('on');tn(90,.9,'sawtooth',.5,-60);tn(1800,.5,'square',.2,-1500);ns(.9,.9,1200);setTimeout(()=>$('sc').classList.remove('on'),1300)}
+function onEv(m){if(!G)return;const n=nameOf;
+ if(m.e=='caught'){note('🎯 '+n(m.by)+' поймал '+n(m.who)+'!');if(m.who==U.id){me.st='dead';me.hid=-1;scare()}else tn(700,.2,'square',.2,500)}
+ else if(m.e=='key'){note('🔑 '+n(m.who)+' нашёл ключ ('+m.n+'/3)'+(m.n>=3?' — выход открыт!':''));tn(900,.25,'sine',.25,500)}
+ else if(m.e=='esc'){note('🎉 '+n(m.who)+' сбежал!');tn(500,.6,'sine',.3,600)}else if(m.e=='hid')tn(200,.2,'triangle',.2,-80);else if(m.e=='empty')note('Пусто…')}
+function onEnd(m){stop();const R2=$('er');R2.innerHTML='';$('et').textContent=m.esc>0?'🎉 Гномики сбежали!':'🧙 Победа Гаргамеля!';$('ed').textContent=m.why;
+ m.res.forEach(r=>{const d=document.createElement('div');d.className='pl rs'+(r.id==U.id?' me':'');const a=document.createElement('span'),b=document.createElement('span');a.textContent=(r.role=='w'?'🧙 ':'🔵 ')+r.name+(r.win?' 🏆':'');b.textContent=(r.role=='w'?'🎯 '+r.catches:'🔑 '+r.keys+' · '+(r.st=='esc'?'сбежал':r.st=='dead'?'пойман':'выжил'))+' · +'+r.coins+' 🪙';d.append(a,b);R2.append(d)});show('end')}
+/* ---- ввод ---- */
+const zn=$('zn');let sp0=null;
+zn.onpointerdown=e=>{au();sp0={id:e.pointerId,x:e.clientX,y:e.clientY};$('st').style.display='block';$('st').style.left=sp0.x-55+'px';$('st').style.top=sp0.y-55+'px';zn.setPointerCapture(e.pointerId)};
+zn.onpointermove=e=>{if(!sp0||e.pointerId!=sp0.id)return;let dx=e.clientX-sp0.x,dy=e.clientY-sp0.y;const l=Math.hypot(dx,dy);if(l>50){dx*=50/l;dy*=50/l}joy.x=l<8?0:dx/50;joy.y=l<8?0:dy/50;$('kn').style.transform=`translate(${dx}px,${dy}px)`};
+zn.onpointerup=zn.onpointercancel=()=>{sp0=null;joy.x=joy.y=0;$('st').style.display='none';$('kn').style.transform=''};
+let lk=null;const lz=$('lz');lz.onpointerdown=e=>{au();lk={id:e.pointerId,x:e.clientX,y:e.clientY};lz.setPointerCapture(e.pointerId);if(e.pointerType=='mouse'&&lz.requestPointerLock)lz.requestPointerLock()};
+lz.onpointermove=e=>{if(e.pointerType=='mouse'){if(document.pointerLockElement)turn(e.movementX,e.movementY);return}if(!lk||e.pointerId!=lk.id)return;turn(e.clientX-lk.x,e.clientY-lk.y);lk.x=e.clientX;lk.y=e.clientY};lz.onpointerup=lz.onpointercancel=()=>lk=null;
+function turn(dx,dy){if(!me)return;me.y-=dx*.006;me.p=Math.max(-1.2,Math.min(1.2,me.p-dy*.005));if(me.hid>=0){const b=CL[me.hid].y;me.y=Math.max(b-1.1,Math.min(b+1.1,me.y))}}
+const act=()=>{if(G&&me.st=='alive'){au();send({t:'act'})}},sense=()=>{if(G&&S.role=='w')send({t:'sense'})};
+$('bE').onpointerdown=e=>{e.preventDefault();act()};$('bF').onpointerdown=e=>{e.preventDefault();fls.visible=!fls.visible};$('bQ').onpointerdown=e=>{e.preventDefault();sense()};$('bS').onpointerdown=e=>{e.preventDefault();spr=1};$('bS').onpointerup=$('bS').onpointercancel=()=>spr=0;
+addEventListener('keydown',e=>{if(e.target.tagName=='INPUT'){if(e.key=='Enter'&&e.target.id=='gin'){sendChat('gin');$('gi').style.display='none';e.target.blur()}return}au();const k=e.key.toLowerCase();keys[k]=1;if(!G)return;if(k=='enter')gchat();if(k=='e')act();if(k=='f')fls.visible=!fls.visible;if(k=='q')sense()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+const nc=r=>{let b=-1,m=r;CL.forEach((c,i)=>{if(c.f!=fi(me))return;const d=Math.hypot(c.x-me.x,c.z-me.z);if(d<m){m=d;b=i}});return b};
+/* ---- кадр ---- */
+function upd(dt,t){const w=S.role=='w';inp.mx=inp.mz=0;inp.sp=false;
+ if(me.st=='alive'&&me.hid<0){let mx=joy.x+(keys.d?1:0)-(keys.a?1:0),mz=joy.y+(keys.s?1:0)-(keys.w?1:0);const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l}
+  const sp=!!(keys.shift||spr)&&me.stam>0&&l>.1&&!w;inp.mx=mx;inp.mz=mz;inp.sp=!!(keys.shift||spr);const v=(w?3.4:3.2)*(sp?1.55:1);
+  const c=Math.cos(me.y),s=Math.sin(me.y),dx=(c*mx+s*mz)*v*dt,dz=(-s*mx+c*mz)*v*dt;me.x+=dx;me.z+=dz;col(me,.32);gh(me);me.sd+=Math.hypot(dx,dz);if(me.sd>1.1){me.sd=0;ns(.08,sp?.22:.1,200)}}
+ inT-=dt;if(inT<=0){inT=.05;send({t:'in',mx:inp.mx,mz:inp.mz,y:me.y,p:me.p,sp:inp.sp})}
+ const eye=w?1.7:1.15;cam.position.set(me.x,me.hid>=0?CL[me.hid].f*H+1.2:me.ht+eye+Math.sin(t*9)*.02*(inp.mx||inp.mz?1:0),me.z);cam.rotation.y=me.y;cam.rotation.x=me.p;$('hide').style.display=me.hid>=0?'block':'none';
+ for(const k of S.km){k.rotation.y+=dt*2;k.position.y=k.userData.h+.9+Math.sin(t*2)*.08}
+ if(S.ex){ex.material.color.set(0x22aa44);ex.material.emissive.set(0x0a5a1a)}
+ let dm=99,al=me.st=='alive'&&!w?1:0,tot=w?0:1;
+ for(const a of pm.values()){const m=a.m,isW=a.r=='w',vis=a.s=='alive'&&!a.c&&a.tx!=null,sn=!isW&&S.sn&&a.s=='alive'&&a.tx!=null;
+  if(!isW){tot++;if(a.s=='alive')al++}
+  m.visible=vis||sn;m.children.forEach(ch=>{ch.visible=ch===m.userData.bc?!!sn:ch.userData.tag?(vis||sn):vis});
+  if(a.tx!=null){const ox=m.position.x,oz=m.position.z;m.position.x+=(a.tx-ox)*.3;m.position.z+=(a.tz-oz)*.3;m.position.y+=(a.th-m.position.y)*.3;m.rotation.y=a.ty;if(isW)m.rotation.z=Math.sin(t*5)*.05;
+   if(isW){const d=Math.hypot(m.position.x-me.x,m.position.z-me.z)+Math.abs(m.position.y-me.ht)*2;dm=Math.min(dm,d);a.acc=(a.acc||0)+Math.hypot(m.position.x-ox,m.position.z-oz);if(a.acc>1.2){a.acc=0;const v=Math.max(0,1-d/20)*.8;if(v>.03){ns(.09,v,150);tn(60,.12,'sine',v)}}}}}
+ if(!w&&me.st=='alive'){if(dm<11){hbT-=dt;if(hbT<=0){hbT=.35+dm/18;tn(60,.2,'sine',.55,-25);setTimeout(()=>tn(55,.2,'sine',.4,-20),150)}}$('vg').style.opacity=Math.max(0,1-dm/11)*.8}else $('vg').style.opacity=0;
+ am-=dt;if(am<0){am=6+R()*8;tn(100+R()*60,1.2,'sawtooth',.04,-30);ns(.5,.08,300+R()*400)}
+ pls.forEach((l,i)=>l.intensity=.9+Math.sin(t*(7+i*3))*.2*R());
+ const mm=Math.max(0,S.tm);$('tm').textContent='⏱ '+Math.floor(mm/60)+':'+String(mm%60).padStart(2,'0');$('ky').textContent=w?'🧙 Гаргамель':'🔑 '+S.kt+'/3';$('al').textContent='🏠 '+(RM?RM.code:'')+' · 👥 '+al+'/'+tot+(w&&S.cd>0?' · 👁 '+S.cd:'');$('sbi').style.width=me.stam*100+'%';$('bQ').textContent=S.cd>0?S.cd:'👁';
+ let h='';if(me.st=='dead')h='😱 Тебя поймали — наблюдай и пиши в чат 💬';else if(me.st=='esc')h='🎉 Ты сбежал! Ждём остальных…';else if(me.hid>=0)h='E — выйти из шкафа';else{const ci=nc(w?2.6:1.8);if(ci>=0)h=w?'E — проверить шкаф':'E — спрятаться';else if(!w&&me.ht<1.5&&Math.hypot(me.x-12,me.z-.2)<2.4)h=S.ex?'E — открыть дверь и сбежать':'Нужно 3 ключа всей командой';else if(me.ht>.3&&me.ht<3)h='⬆ лестница'}$('hint').textContent=h}
+let last=0;function loop(t){requestAnimationFrame(loop);const dt=Math.min(.05,(t-last)/1000||0);last=t;if(G&&S&&me)upd(dt,t/1000);ren.render(sc,cam)}requestAnimationFrame(loop);conn();
+
+</script></body></html>
